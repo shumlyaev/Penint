@@ -8,6 +8,7 @@ let canv = document.querySelector('#mainCanvas');
 let ctx = canv.getContext('2d');
 let mousePressed = false;
 let coords = [];
+let painted = [];
 
 canv.width = canv.parentNode.offsetWidth;
 canv.height = 850;
@@ -27,7 +28,7 @@ $('#drawCoords').on('click', function(e) {
     console.log(coords);
 });
 
-drawNet();
+//drawNet();
 //initCoordsWith(30);
 
 canv.onmousedown = function(e) {
@@ -158,8 +159,8 @@ function drawBibu(arr) {
             clearInterval(interval);
             return;
         }
-        clear();
-        drawNet();
+        //clear();
+        //drawNet();
         for (let key in coords) { 
             if (coords[key].x > chCoords[key].x) 
                 coords[key].x -= coords[key].xStep;
@@ -170,11 +171,17 @@ function drawBibu(arr) {
             else 
                 coords[key].y += coords[key].yStep;
         }
+        clear();
+        drawArr(painted);
         drawArr(coords);
         c++;
     }, 30);
 
-    console.log(arr);
+    for (let key in coords) {
+        painted.push(coords[key]);
+    }
+    painted.push('NaN');
+
     //clear();
     //drawNet();
     ctx.beginPath();
@@ -202,6 +209,7 @@ function clear() {
     ctx.beginPath();
 }
 function drawArr(arr) {
+    //ctx.beginPath();
     for (let key in arr) {
         draw(arr[key]);
     }
