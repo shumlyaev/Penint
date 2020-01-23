@@ -1,0 +1,16 @@
+#mainCanvas {
+    border: 1px solid black;
+    margin-top: 10px;
+}
+.lineElem {
+    margin-right: 10px;
+}
+.container {
+    padding-top: 10px;
+}
+#lableChangeWidth {
+    margin-top: 8px;
+    margin-left: 10px;
+    margin-right: 0px;
+    min-width: 110px;
+}
