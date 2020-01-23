@@ -15,7 +15,6 @@ canv.height = 850;
 
 $('#clearCanv').on('click', function(e) {
     clear();
-    drawNet();
 });
 $('#clearCoords').on('click', function(e) {
     coords = [];
