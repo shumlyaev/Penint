@@ -1,57 +1,37 @@
-class Biba {
-    constructor() {
-
-    }
-}
-
 let canv = document.querySelector('#mainCanvas');
 let ctx = canv.getContext('2d');
 let mousePressed = false;
 let coords = [];
-let painted = [];
+let paintedBibs = [];
+let paintedLines = [];
 
 canv.width = canv.parentNode.offsetWidth;
 canv.height = 850;
-
-$('#clearCanv').on('click', function(e) {
-    clear();
-});
-$('#clearCoords').on('click', function(e) {
-    coords = [];
-    console.log(coords);
-});
-$('#drawCoords').on('click', function(e) {
-    console.log('Dst before ' + countDistance(coords));
-    changeCoords(coords);
-    console.log('Dst after ' + countDistance(coords));
-    console.log(coords);
-});
-
-//drawNet();
-//initCoordsWith(30);
+ctx.lineWidth = 2;
 
 canv.onmousedown = function(e) {
     mousePressed = true;
     coords = [];
-
-    //let biba = new Biba();
+    ctx.beginPath();
 }
 canv.onmouseup = function(e) {
     mousePressed = false;
-    changeCoords(coords);
-    //console.log(coords);
-    //scale = countDistance(coords) / 13;
-    drawBibu(coords);
-    ctx.beginPath();
-    //console.log(coords);
+    paintedLines = [];
+    if (coords.length > 0) {
+        changeCoords(coords);
+        drawBibu(coords);
+        ctx.beginPath();
+    }
 }
 canv.onmousemove = function(e) {
     if (mousePressed) {
-        let curCoords = {x: e.offsetX, y: e.offsetY, xStep: 0, yStep: 0};
+        let curCoords = {x: e.offsetX, y: e.offsetY};
         draw(curCoords);
         coords.push(curCoords);
+        paintedLines.push(curCoords);
     }
 }
+//уменьшает частоту точек и модифицирует массив для правильной отрисовки
 function changeCoords(arr) {
     let curDist = 0;
     let i = 0, j = 1;
@@ -67,6 +47,9 @@ function changeCoords(arr) {
         j = i + 1;
     }   
     while (arr.length < 20) {
+        arr.push({x: arr[arr.length - 1].x, y: arr[arr.length - 1].y});
+    }
+    while (arr.length < 40 && countDistance(coords) > 300) {
         arr.push({x: arr[arr.length - 1].x, y: arr[arr.length - 1].y});
     }
     while (arr.length % 3 != 0) {
@@ -87,8 +70,7 @@ function drawBibu(arr) {
         i++;
     }
     
-
-    //высчитывается положение бибы bibaOffset
+    //высчитываются координаты бибы bibaOffset (центр первой окружности)
     let bibaOffsetX = 0;
     let bibaOffsetY = 0;
     let minX = canv.width, minY = canv.height, maxX = 0, maxY = 0;
@@ -100,19 +82,15 @@ function drawBibu(arr) {
     }
     bibaOffsetX = minX + (maxX - minX) / 2;
     bibaOffsetY = minY + (maxY - minY) / 2;
-    //console.log('minX ' + minX + ' maxX ' + maxX);
-    //console.log('minY ' + minY + ' maxY ' + maxY);
-    //console.log('offX ' + bibaOffsetX + ' offY ' + bibaOffsetY);
 
     //массив chCoords заполняется новыми координатами 
     let curAngle = 0;
-    let angleStep = (180 / (chCoords.length / 3 - 1)) * Math.PI / 180;
+    let angleStep = (180 / (chCoords.length / 3 - 1)) * Math.PI / 180; //в радианах
     let radius = countDistance(coords) / 13;
     if (radius < 3) radius = 3;
     if (radius > 150) radius = 150;
-    bibaOffsetX += radius;
-    bibaOffsetY += radius * 1.5;
-
+    bibaOffsetX += radius;//bibaOffset все еще центр первой окружности
+    bibaOffsetY += radius * 1.5//bibaOffset все еще центр первой окружности
     for (let key in chCoords) {
         if (key < (chCoords.length / 3)) {     
             chCoords[key].x = radius * Math.sin(curAngle) + bibaOffsetX;
@@ -137,6 +115,46 @@ function drawBibu(arr) {
         }
     }
 
+    //координаты пересчитываются с поворотом на rotateAngle
+    bibaOffsetX -= radius;
+    bibaOffsetY -= radius * 1.5;//теперь это координаты центра бибы
+    let centerHyp;
+    let centerXPos;
+    let centerYPos;
+    let rotateAngle = Math.floor(Math.random() * 361);
+    let gamma;
+    let beta;
+    let phi;
+    let piece1;
+    for (let key in chCoords) {
+        centerXPos = Math.abs(bibaOffsetX - chCoords[key].x);
+        centerYPos = Math.abs(bibaOffsetY - chCoords[key].y);
+        centerHyp = Math.sqrt(centerXPos * centerXPos + centerYPos * centerYPos);
+        gamma = (180 - rotateAngle) / 2;
+        piece1 = centerHyp * Math.sin(rotateAngle * Math.PI / 180) / Math.sin(gamma * Math.PI / 180);
+        if (chCoords[key].x > bibaOffsetX && chCoords[key].y > bibaOffsetY) {
+            beta = Math.asin(centerYPos / centerHyp) * 180 / Math.PI;
+            phi = (180 - gamma - beta) * Math.PI / 180;
+            chCoords[key].x += piece1 * Math.cos(phi);
+            chCoords[key].y -= piece1 * Math.sin(phi);
+        } else if (chCoords[key].x >= bibaOffsetX && chCoords[key].y < bibaOffsetY) {
+            beta = Math.asin(centerXPos / centerHyp) * 180 / Math.PI;
+            phi = (180 - gamma - beta) * Math.PI / 180;
+            chCoords[key].x -= piece1 * Math.sin(phi);
+            chCoords[key].y -= piece1 * Math.cos(phi);
+        } else if (chCoords[key].x < bibaOffsetX && chCoords[key].y < bibaOffsetY) {
+            beta = Math.asin(centerYPos / centerHyp) * 180 / Math.PI;
+            phi = (180 - gamma - beta) * Math.PI / 180;
+            chCoords[key].x -= piece1 * Math.cos(phi);
+            chCoords[key].y += piece1 * Math.sin(phi);
+        } else if (chCoords[key].x < bibaOffsetX && chCoords[key].y > bibaOffsetY) {
+            beta = Math.asin(centerXPos / centerHyp) * 180 / Math.PI;
+            phi = (180 - gamma - beta) * Math.PI / 180;
+            chCoords[key].x += piece1 * Math.sin(phi);
+            chCoords[key].y += piece1 * Math.cos(phi);
+        }
+    }
+    
     //считается xStep и yStep для каждой точки
     let hyp;
     let hypStep;
@@ -144,7 +162,7 @@ function drawBibu(arr) {
     let angleCos;  
     for (let key in coords) {
         hyp = Math.sqrt((coords[key].x - chCoords[key].x) * (coords[key].x - chCoords[key].x) + (coords[key].y - chCoords[key].y) * (coords[key].y - chCoords[key].y));
-        hypStep = hyp / 40;
+        hypStep = hyp / 40;//40
         angleSin = Math.abs(coords[key].y - chCoords[key].y) / hyp;
         angleCos = Math.abs(coords[key].x - chCoords[key].x) / hyp;
         coords[key].xStep = hypStep * angleCos;
@@ -154,37 +172,34 @@ function drawBibu(arr) {
     //coords занимает положение chCoords
     let c = 0;
     let interval = setInterval(function() {
-        if (c == 40) {
+        if (c == 40) {//40
             clearInterval(interval);
             return;
         }
-        //clear();
-        //drawNet();
-        for (let key in coords) { 
+        for (let key in coords) {
             if (coords[key].x > chCoords[key].x) 
                 coords[key].x -= coords[key].xStep;
-            else 
+            else if (coords[key].x < chCoords[key].x)
                 coords[key].x += coords[key].xStep;
             if (coords[key].y > chCoords[key].y) 
                 coords[key].y -= coords[key].yStep;
-            else 
+            else if (coords[key].y < chCoords[key].y) 
                 coords[key].y += coords[key].yStep;
         }
         clear();
-        drawArr(painted);
-        drawArr(coords);
+        drawArr(paintedLines, 0);
+        drawArr(paintedBibs, 0);
+        drawArr(coords, 1);
         c++;
-    }, 30);
+    }, 30);//30
 
+    //запоминается нарисованная биба
     for (let key in coords) {
-        painted.push(coords[key]);
+        paintedBibs.push(coords[key]);
     }
-    painted.push('NaN');
+    paintedBibs.push('NaN');
 
-    //clear();
-    //drawNet();
     ctx.beginPath();
-    //console.log(chCoords);
 }
 function countDistance(arr) {
     let dist = 0;
@@ -193,8 +208,6 @@ function countDistance(arr) {
     }
     return dist;
 }
-
-
 function draw(data) {
     ctx.lineTo(data.x, data.y);
     ctx.stroke();
@@ -207,12 +220,13 @@ function clear() {
     ctx.fillStyle = 'black';
     ctx.beginPath();
 }
-function drawArr(arr) {
-    //ctx.beginPath();
+function drawArr(arr, bool) {
+    ctx.beginPath();
     for (let key in arr) {
         draw(arr[key]);
     }
     ctx.beginPath();
+    if (bool && coords.length > 0) ctx.moveTo(coords[coords.length - 1].x, coords[coords.length - 1].y);
 }
 function initCoordsWith(x) {
     for (let i = 0; i < x; i++) {
